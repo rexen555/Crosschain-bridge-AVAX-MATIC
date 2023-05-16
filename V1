@@ -1,0 +1,30 @@
+// Avalanche contract
+pragma solidity ^0.8.0;
+
+interface IPolygonBridge {
+    function deposit(address _token, uint256 _amount) external;
+    function withdraw(address _token, uint256 _amount) external;
+}
+
+contract CrossChainBridge {
+    IPolygonBridge public immutable polygonBridge;
+    address public immutable l1Token;
+    address public immutable l2Token;
+
+    constructor(address _polygonBridge, address _l1Token, address _l2Token) {
+        polygonBridge = IPolygonBridge(_polygonBridge);
+        l1Token = _l1Token;
+        l2Token = _l2Token;
+    }
+
+    function deposit(uint256 _amount) external {
+        require(IAVAX(l1Token).transferFrom(msg.sender, address(this), _amount), "Transfer failed");
+        require(IAVAX(l1Token).approve(address(polygonBridge), _amount), "Approval failed");
+        polygonBridge.deposit(l2Token, _amount);
+    }
+
+    function withdraw(uint256 _amount) external {
+        polygonBridge.withdraw(l2Token, _amount);
+        require(IAVAX(l1Token).transfer(msg.sender, _amount), "Transfer failed");
+    }
+}
